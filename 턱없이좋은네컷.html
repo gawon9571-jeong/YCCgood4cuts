@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>턱없이 좋은 네컷 - 배리어프리 포토부스</title>
+    <style>
+        :root {
+            --primary-color: #E85B7A;
+            --secondary-color: #7B848F;
+            --bg-color: #F8D2DB;
+            --panel-bg: #FFFFFF;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* 키오스크 전체 프레임 */
+        .kiosk-container {
+            width: 1024px;
+            height: 576px;
+            background: var(--panel-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* -------------------------------
+           [화면 1] 키비주얼 / 시작 화면 
+        ---------------------------------- */
+        .screen-start {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: #F4C4CD;
+            z-index: 10;
+            transition: transform 0.6s cubic-bezier(0.77, 0, 0.175, 1);
+        }
+
+        .kv-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            width: 90%;
+            margin-bottom: 20px;
+        }
+
+        .kv-frame-preview {
+            width: 150px;
+            height: 320px;
+            background: #E85B7A;
+            border-radius: 8px;
+            transform: rotate(-15deg);
+            padding: 10px;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .kv-frame-box { background: #FFF0F2; flex: 1; border-radius: 4px; }
+        .kv-title-area { text-align: center; }
+
+        .kv-main-title {
+            font-size: 64px;
+            font-weight: 900;
+            color: #222222;
+            line-height: 1.2;
+            margin: 0;
+            text-shadow: 2px 2px 0px #FFF;
+        }
+        .kv-main-title span { color: var(--primary-color); }
+        .kv-sub-title { font-size: 18px; letter-spacing: 4px; color: #555; margin: 15px 0 0 0; font-weight: bold; }
+        .kv-brand { font-size: 16px; color: #444; margin-top: 5px; }
+
+        .kv-character-area { display: flex; flex-direction: column; align-items: center; }
+        .wheelchair-icon { font-size: 110px; filter: drop-shadow(3px 5px 5px rgba(0,0,0,0.1)); animation: bounce 2s infinite ease-in-out; }
+
+        .start-btn {
+            background: #222222;
+            color: #FFFFFF;
+            font-size: 24px;
+            font-weight: bold;
+            padding: 18px 60px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+            margin-top: 10px;
+            letter-spacing: 1px;
+        }
+        .start-btn:active { transform: scale(0.95); background: var(--primary-color); }
+
+        /* -------------------------------
+           [화면 2] 메인 조작 화면 (스크롤 기능 탑재)
+        ---------------------------------- */
+        .screen-main {
+            width: 100%;
+            height: 100%;
+            padding: 30px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            background: #FFFFFF;
+            
+            /* 🛠️ 핵심 변경: 내용이 넘칠 경우 내부 스크롤바 활성화 */
+            overflow-y: auto; 
+            -webkit-overflow-scrolling: touch; /* 모바일 터치 부드럽게 */
+        }
+
+        /* 예쁜 맞춤형 스크롤바 디자인 (PPT 시연 시 깔끔하도록) */
+        .screen-main::-webkit-scrollbar {
+            width: 8px;
+        }
+        .screen-main::-webkit-scrollbar-track {
+            background: #F5F5F5;
+            border-radius: 4px;
+        }
+        .screen-main::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #EEE;
+            padding-bottom: 15px;
+            flex-shrink: 0; /* 스크롤 시 상단 헤더 압착 방지 */
+        }
+
+        .title-area h1 { margin: 0; font-size: 28px; color: #333; }
+        .title-area p { margin: 5px 0 0 0; font-size: 16px; color: #666; }
+        .timer { font-size: 24px; font-weight: bold; color: #333; background: #EAEAEA; padding: 8px 16px; border-radius: 20px; }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            margin-top: 25px;
+            gap: 25px;
+            min-height: 400px; /* 내부 요소 최소 높이 보장 */
+        }
+
+        .control-panel {
+            flex: 1.3;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .section-title { font-size: 18px; font-weight: bold; color: #444; margin-bottom: 5px; }
+        .mode-selection { display: flex; flex-direction: column; gap: 8px; }
+
+        .mode-btn {
+            padding: 14px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            background-color: #E0E0E0;
+            color: #555;
+        }
+        .mode-btn.active { background-color: var(--primary-color); color: white; box-shadow: 0 4px 10px rgba(232, 91, 122, 0.3); }
+        .mode-btn.secondary.active { background-color: var(--secondary-color); }
+
+        /* 하단 조작존 */
+        .adjustment-zone {
+            display: flex;
+            gap: 20px;
+            align-items: stretch;
+            height: 230px; 
+            flex-shrink: 0;
+        }
+
+        /* 세로형 기기 높낮이 조절 박스 */
+        .height-control-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between; 
+            background: #F5F5F5;
+            padding: 12px 10px;
+            border-radius: 12px;
+            width: 110px;
+            box-sizing: border-box;
+        }
+
+        .height-btn {
+            width: 48px;
+            height: 48px;
+            border: none;
+            background: #222;
+            color: white;
+            border-radius: 50%;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+            transition: background 0.1s;
+        }
+        .height-btn:active { background: var(--primary-color); }
+
+        .height-visual-track {
+            width: 22px;
+            height: 70px;
+            background: #DDD;
+            border-radius: 12px;
+            margin: 5px 0;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid #EAEAEA;
+        }
+
+        .height-visual-bar {
+            width: 100%;
+            height: 50%; 
+            background: var(--primary-color);
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            transition: height 0.2s ease;
+        }
+
+        .height-txt-display {
+            font-size: 13px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* 우측 각도 조절 컨테이너 */
+        .slider-container {
+            flex: 1;
+            background: #F5F5F5;
+            padding: 20px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .slider-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .angle-display { font-size: 20px; font-weight: bold; color: var(--primary-color); }
+
+        .tilt-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 15px;
+            border-radius: 10px;
+            background: #DDD;
+            outline: none;
+        }
+        .tilt-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        .status-msg {
+            padding: 12px;
+            background-color: #FFF0F2;
+            border-left: 4px solid var(--primary-color);
+            border-radius: 4px;
+            font-size: 14px;
+            color: var(--primary-color);
+            display: none;
+            line-height: 1.4;
+            margin-top: 10px;
+            flex-shrink: 0;
+        }
+
+        /* 프리뷰 패널 */
+        .preview-panel {
+            flex: 1;
+            background: #333;
+            border-radius: 12px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            overflow: hidden;
+            height: 340px; /* 프리뷰 높이 고정 */
+        }
+
+        .preview-title {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0,0,0,0.6);
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .preview-title::before { content: ''; display: inline-block; width: 8px; height: 8px; background: #FF3B30; border-radius: 50%; }
+
+        .camera-visualization {
+            width: 120px;
+            height: 120px;
+            background: #222;
+            border: 4px solid #555;
+            border-radius: 50%;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.2s ease, top 0.2s ease;
+            top: 0px;
+            box-shadow: 0 0 20px rgba(255,255,255,0.1);
+        }
+
+        .camera-lens {
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, #1a2a6c, #272727);
+            border: 3px solid #444;
+            border-radius: 50%;
+            position: relative;
+        }
+        .lens-reflection { position: absolute; top: 10px; left: 10px; width: 15px; height: 15px; background: rgba(255,255,255,0.4); border-radius: 50%; }
+
+        .angle-guide { margin-top: 20px; font-size: 14px; color: #CCC; text-align: center; line-height: 1.5; }
+
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    </style>
+</head>
+<body>
+
+<div class="kiosk-container">
+    
+    <div class="screen-start" id="start-screen">
+        <div class="kv-content">
+            <div class="kv-frame-preview">
+                <div class="kv-frame-box"></div>
+                <div class="kv-frame-box"></div>
+                <div class="kv-frame-box"></div>
+            </div>
+            
+            <div class="kv-title-area">
+                <h1 class="kv-main-title">
+                    <span>턱</span>없이 좋은<br>네컷
+                </h1>
+                <div class="kv-sub-title">FOUR-FECT MOMENTS</div>
+                <div class="kv-brand">인생네컷 With 장애인 연대</div>
+            </div>
+
+            <div class="kv-character-area">
+                <div class="wheelchair-icon">♿👶</div>
+            </div>
+        </div>
+        <button class="start-btn" onclick="startPhotoBooth()">촬영하기</button>
+    </div>
+
+    <div class="screen-main">
+        <div class="header">
+            <div class="title-area">
+                <h1>카메라 모드 · 각도 선택</h1>
+                <p>카메라 모드를 선택하고, 화면에 비친 각도를 조절해 보세요.</p>
+            </div>
+            <div class="timer" id="timer">09:59</div>
+        </div>
+
+        <div class="main-content">
+            <div class="control-panel">
+                <div class="mode-selection">
+                    <div class="section-title">1. 모드 선택</div>
+                    <button class="mode-btn secondary active" id="btn-normal" onclick="setMode('normal')">일반 사용자 모드</button>
+                    <button class="mode-btn" id="btn-wheelchair" onclick="setMode('wheelchair')">휠체어 사용 모드</button>
+                </div>
+
+                <div class="section-title" style="margin-bottom: -5px;">2. 기기 세부 조절</div>
+                <div class="adjustment-zone">
+                    
+                    <div class="height-control-container">
+                        <button class="height-btn" onclick="adjustHeight('up')">▲</button>
+                        <div class="height-visual-track">
+                            <div class="height-visual-bar" id="height-bar"></div>
+                        </div>
+                        <button class="height-btn" onclick="adjustHeight('down')">▼</button>
+                        <div class="height-txt-display" id="height-txt">5 cm</div>
+                    </div>
+
+                    <div class="slider-container">
+                        <div class="slider-header">
+                            <div class="section-title" style="margin:0; font-size: 16px;">카메라 각도 (Tilt)</div>
+                            <div class="angle-display" id="angle-val">0°</div>
+                        </div>
+                        <input type="range" min="0" max="45" value="0" class="tilt-slider" id="tilt-range" oninput="updateTilt(this.value)">
+                    </div>
+
+                </div>
+
+                <div class="status-msg" id="status-box">
+                    <strong>♿ 휠체어 사용 모드 활성화</strong><br>
+                    기기가 안전 높이로 자동 조정되었습니다. 추가 조절을 원하시면 높낮이 버튼(▲/▼)과 각도 슬라이더를 이용하세요.
+                </div>
+            </div>
+
+            <div class="preview-panel">
+                <div class="preview-title">카메라 미리보기</div>
+                
+                <div class="camera-visualization" id="camera-hardware">
+                    <div class="camera-lens">
+                        <div class="lens-reflection"></div>
+                    </div>
+                </div>
+                
+                <div class="angle-guide">
+                    기기 조절 상태<br>
+                    높이 변위: <span id="visual-height" style="color: #E85B7A; font-weight: bold;">+5cm</span> | 각도: <span id="visual-angle" style="color: #E85B7A; font-weight: bold;">0°</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentMode = 'normal';
+    let currentHeightCm = 5; 
+    let currentAngleDeg = 0;
+
+    function startPhotoBooth() {
+        document.getElementById('start-screen').style.transform = 'translateY(-100%)';
+        startTimer();
+    }
+
+    function setMode(mode) {
+        currentMode = mode;
+        const btnNormal = document.getElementById('btn-normal');
+        const btnWheelchair = document.getElementById('btn-wheelchair');
+        const statusBox = document.getElementById('status-box');
+
+        if(mode === 'wheelchair') {
+            btnNormal.classList.remove('active');
+            btnWheelchair.classList.add('active');
+            statusBox.style.display = 'block';
+            currentHeightCm = 0;
+            currentAngleDeg = 25;
+        } else {
+            btnWheelchair.classList.remove('active');
+            btnNormal.classList.add('active');
+            statusBox.style.display = 'none';
+            currentHeightCm = 5;
+            currentAngleDeg = 0;
+        }
+
+        document.getElementById('tilt-range').value = currentAngleDeg;
+        applyHardwareChanges();
+    }
+
+    function adjustHeight(direction) {
+        if(direction === 'up' && currentHeightCm < 10) {
+            currentHeightCm++;
+        } else if(direction === 'down' && currentHeightCm > 0) {
+            currentHeightCm--;
+        }
+        applyHardwareChanges();
+    }
+
+    function updateTilt(value) {
+        currentAngleDeg = value;
+        applyHardwareChanges();
+    }
+
+    function applyHardwareChanges() {
+        const percentage = currentHeightCm * 10; 
+        document.getElementById('height-bar').style.height = percentage + '%';
+        document.getElementById('height-txt').innerText = currentHeightCm + ' cm';
+
+        document.getElementById('angle-val').innerText = currentAngleDeg + '°';
+        document.getElementById('visual-angle').innerText = currentAngleDeg + '°';
+        document.getElementById('visual-height').innerText = '+' + currentHeightCm + 'cm';
+
+        const cameraHardware = document.getElementById('camera-hardware');
+        const topPixelOffset = (5 - currentHeightCm) * 6; 
+        
+        cameraHardware.style.top = topPixelOffset + 'px';
+        cameraHardware.style.transform = `perspective(200px) rotateX(${currentAngleDeg}deg)`;
+    }
+
+    let time = 599; 
+    const timerElement = document.getElementById('timer');
+    function startTimer() {
+        setInterval(() => {
+            if (time >= 0) {
+                let minutes = Math.floor(time / 60);
+                let seconds = time % 60;
+                minutes = minutes < 10 ? '0' + minutes : minutes;
+                seconds = seconds < 10 ? '0' + seconds : seconds;
+                timerElement.innerText = `${minutes}:${seconds}`;
+                time--;
+            }
+        }, 1000);
+    }
+
+    applyHardwareChanges();
+</script>
+
+</body>
+</html>
